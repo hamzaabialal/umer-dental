@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-navy: #123a6b;
+  --color-navy-dark: #081d36;
+  --color-gold: #c9a24a;
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f7fb;
+  color: #172033;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  .input {
+    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-navy focus:ring-2 focus:ring-navy/15;
+  }
+  .label {
+    @apply block text-xs font-medium text-slate-600;
+  }
+  .btn,
+  .btn-primary,
+  .btn-gold,
+  .btn-ghost,
+  .btn-danger,
+  .btn-wa {
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply bg-navy text-white hover:bg-navy-dark;
+  }
+  .btn-gold {
+    @apply bg-gold text-navy-dark hover:brightness-95;
+  }
+  .btn-ghost {
+    @apply bg-slate-100 text-navy hover:bg-slate-200;
+  }
+  .btn-danger {
+    @apply bg-red-50 text-red-700 hover:bg-red-100;
+  }
+  .btn-wa {
+    @apply bg-[#25D366] text-white hover:brightness-95;
+  }
+  .card {
+    @apply rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70;
+  }
+  .table {
+    @apply w-full text-left text-sm;
+  }
+  .table th {
+    @apply sticky top-0 bg-slate-50 px-3 py-2.5 text-xs font-semibold tracking-wide text-slate-500 uppercase;
+  }
+  .table td {
+    @apply border-t border-slate-100 px-3 py-2.5 align-top;
+  }
+  .badge {
+    @apply inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
 }
