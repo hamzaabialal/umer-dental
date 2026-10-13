@@ -34,7 +34,10 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
         <Link href={`/appointments?week=${a.date}`} className="text-sm text-slate-500 hover:text-navy">
           ← Appointments
         </Link>
-        <h1 className="text-2xl font-bold text-navy">Appointment</h1>
+        <h1 className="text-2xl font-bold text-navy">
+          Appointment
+          {a.source === "website" && <span className="badge ml-2 bg-gold/20 align-middle text-navy">Booked from website</span>}
+        </h1>
       </div>
       {created && (
         <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

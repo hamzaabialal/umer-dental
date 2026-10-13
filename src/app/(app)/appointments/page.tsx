@@ -74,6 +74,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
                     className={`block rounded-md border-l-4 px-2 py-1.5 text-xs hover:brightness-95 ${STATUS_STYLE[a.status] ?? ""}`}
                   >
                     <b>{prettyTime(a.time)}</b> {a.patient_name}
+                    {a.source === "website" && <span className="badge ml-1 bg-gold/20 text-navy">Website</span>}
                     {a.procedure && <div className="truncate opacity-80">{a.procedure}</div>}
                     {!branch && <div className="opacity-60">{a.branch}</div>}
                   </Link>

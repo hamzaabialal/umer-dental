@@ -172,3 +172,15 @@ create table if not exists expenses (
   created_by   int references users(id),
   created_at   timestamptz not null default now()
 );
+
+-- Bookings from the public website form (POST /api/public/bookings) are marked source = 'website'.
+alter table appointments add column if not exists source text not null default 'staff';
+
+-- One row per accepted website booking, used to rate-limit the public API by IP and phone.
+create table if not exists web_booking_log (
+  id          serial primary key,
+  ip          text not null default '',
+  phone_norm  text not null default '',
+  created_at  timestamptz not null default now()
+);
+create index if not exists web_booking_log_created_idx on web_booking_log (created_at);

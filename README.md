@@ -32,8 +32,44 @@ The seed prints the first passwords for `drumar` (admin), `bahria` and `pwd` onc
 ## Deploy (Vercel)
 
 1. Push this folder to a private GitHub repo and import it in Vercel.
-2. Add the three environment variables from `.env.example` (set `APP_URL` to the live domain).
+2. Add the environment variables from `.env.example` (set `APP_URL` to the live domain).
 3. Deploy. Patient links and calendar subscriptions only work once the app is on a public URL.
+
+## Website booking API
+
+The clinic website's appointment form posts to `POST /api/public/bookings`. Each booking creates the patient
+(or reuses them if the same name + phone already exists), adds an appointment marked **Website** in the calendar,
+and sends Dr. Umar a WhatsApp alert with the details and a link to open it.
+
+**Request** (JSON or form data):
+
+| Field | Required | Example |
+|---|---|---|
+| `name` | yes | `Ali Khan` |
+| `phone` | yes | `0300 1234567` |
+| `branch` | yes | `Bahria` or `PWD` |
+| `date` | yes | `2026-10-20` (today up to 90 days ahead) |
+| `time` | yes | `17:30` (24-hour, clinic time) |
+| `treatment` | no | `Dental Implant` |
+| `message` | no | free text, up to 500 characters |
+| `company` | no | hidden honeypot: leave empty; bots that fill it are silently ignored |
+
+**Responses:** `201 {"ok":true,"appointment":{…},"calendarUrl":"…/a/<token>"}`. A repeated submit of the same booking
+returns `200` with the same appointment. Errors return `{"ok":false,"error":"<message to show the patient>"}` with
+`403` (site not allowed), `422` (invalid input) or `429` (more than 5 per hour per IP or 3 per day per phone).
+
+**Access:** browsers must call from an origin listed in `BOOKING_ALLOWED_ORIGINS`. A server can call instead with
+the header `X-Api-Key: <BOOKING_API_KEY>`.
+
+**WhatsApp alerts** go to `NOTIFY_WHATSAPP_TO`. Set up one provider:
+
+- **CallMeBot (free, 1 minute):** from Dr. Umar's WhatsApp, follow https://www.callmebot.com/blog/free-api-whatsapp-messages/
+  (save their number and send the activation message). It replies with an API key. Put that key in `CALLMEBOT_APIKEY`.
+- **Meta WhatsApp Cloud API (official):** create a utility template whose body uses `{{1}}` name, `{{2}}` phone,
+  `{{3}}` branch, `{{4}}` date and time, `{{5}}` treatment, `{{6}}` message, `{{7}}` link. Once approved, set
+  `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` and `WHATSAPP_TEMPLATE`. This takes priority over CallMeBot.
+
+A failed alert never fails the booking; it is logged in the Vercel function logs.
 
 ## Notes
 

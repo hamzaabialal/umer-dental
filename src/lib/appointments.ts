@@ -6,10 +6,11 @@ export type Appt = CalAppt & {
   share_token: string;
   mr: string;
   branch: string;
+  source: string;
 };
 
 const SELECT = `
-  select a.id, a.share_token, a.mr, a.branch, a.date, a.time, a.duration_min, a.procedure, a.status, a.notes,
+  select a.id, a.share_token, a.mr, a.branch, a.date, a.time, a.duration_min, a.procedure, a.status, a.notes, a.source,
          p.name as patient_name, p.phone as patient_phone,
          b.name as branch_name, b.address as branch_address, b.phone as branch_phone
   from appointments a

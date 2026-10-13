@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Optimistic check only: bounces visitors without a session cookie to /login.
 // Real verification happens in requireUser() on every page and action.
-const PUBLIC = [/^\/login/, /^\/a\//, /^\/i\//, /^\/r\//, /^\/api\/calendar\//];
+const PUBLIC = [/^\/login/, /^\/a\//, /^\/i\//, /^\/r\//, /^\/api\/calendar\//, /^\/api\/public\//];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
