@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/Shell";
-import { listAppts } from "@/lib/appointments";
+import { bookedBy, listAppts } from "@/lib/appointments";
 import { prettyDate, prettyTime, todayPK } from "@/lib/format";
 import { pageContext } from "@/lib/page-helpers";
 
@@ -74,9 +74,15 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
                     className={`block rounded-md border-l-4 px-2 py-1.5 text-xs hover:brightness-95 ${STATUS_STYLE[a.status] ?? ""}`}
                   >
                     <b>{prettyTime(a.time)}</b> {a.patient_name}
-                    {a.source === "website" && <span className="badge ml-1 bg-gold/20 text-navy">Website</span>}
+                    {a.source === "website" &&
+                      (a.seen_at ? (
+                        <span className="badge ml-1 bg-gold/20 text-navy">Website</span>
+                      ) : (
+                        <span className="badge ml-1 bg-red-600 text-white">New</span>
+                      ))}
                     {a.procedure && <div className="truncate opacity-80">{a.procedure}</div>}
                     {!branch && <div className="opacity-60">{a.branch}</div>}
+                    <div className="truncate opacity-60">by {bookedBy(a)}</div>
                   </Link>
                 ))}
               </div>

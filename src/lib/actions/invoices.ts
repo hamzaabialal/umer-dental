@@ -36,7 +36,7 @@ export async function createInvoice(_prev: string | null, form: FormData): Promi
     const method = String(form.get("payment_method") || "");
     if (method && !(PAYMENT_METHODS as readonly string[]).includes(method)) return "Invalid payment method.";
 
-    const patient = await resolvePatientFromForm(form, branch, date);
+    const patient = await resolvePatientFromForm(form, branch, date, user.role === "admin");
 
     const [row] = await sql.query(
       `with inv as (

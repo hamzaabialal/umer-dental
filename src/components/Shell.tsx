@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { logout, switchBranch } from "@/lib/actions/auth";
 import { LogoMark } from "./Logo";
+import { NotificationBell } from "./NotificationBell";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
@@ -87,21 +88,24 @@ export function Shell({
         <div className="text-sm text-slate-500">
           Viewing: <b className="text-navy">{branch ? `${branch} branch` : "All branches"}</b>
         </div>
-        {!user.branch && (
-          <form action={switchBranch} className="flex items-center gap-2">
-            <input type="hidden" name="back" value={pathname} />
-            <select
-              name="branch"
-              defaultValue={branch ?? "all"}
-              onChange={(e) => e.currentTarget.form?.requestSubmit()}
-              className="input w-auto py-1.5"
-            >
-              <option value="all">All branches</option>
-              <option value="Bahria">Bahria</option>
-              <option value="PWD">PWD</option>
-            </select>
-          </form>
-        )}
+        <div className="flex items-center gap-2">
+          {!user.branch && (
+            <form action={switchBranch} className="flex items-center gap-2">
+              <input type="hidden" name="back" value={pathname} />
+              <select
+                name="branch"
+                defaultValue={branch ?? "all"}
+                onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                className="input w-auto py-1.5"
+              >
+                <option value="all">All branches</option>
+                <option value="Bahria">Bahria</option>
+                <option value="PWD">PWD</option>
+              </select>
+            </form>
+          )}
+          <NotificationBell />
+        </div>
       </header>
       <main className="p-4 lg:p-8 print:p-0">{children}</main>
     </div>

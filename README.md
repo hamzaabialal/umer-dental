@@ -5,7 +5,7 @@ Next.js 16 + Neon Postgres web app replacing the old single-file HTML trial.
 ## What it does
 
 - **Secure logins**: bcrypt-hashed passwords, signed httpOnly session cookie, 15-minute lockout after 5 failed attempts.
-  Roles: **admin** (everything + Settings/users), **doctor** (all branches), **receptionist** (own branch only).
+  Roles: **admin** (everything, including Settings/users, editing patient details and rescheduling), **doctor** (all branches), **receptionist** (own branch only). Doctors and receptionists can create records, update appointment status and take payments, but cannot edit existing patient details or reschedule.
 - **Phone-first patient lookup** on every form; new patients get the next MR number (`UDC-B-…` / `UDC-P-…`).
 - **Invoices / receipts** in the branded A4 layout: tooth/area, cash and card/online split, discount, pending amount,
   Google-review QR, doctor signature. Print / Save PDF, or send the patient a WhatsApp link (`/i/<token>`).
@@ -39,7 +39,7 @@ The seed prints the first passwords for `drumar` (admin), `bahria` and `pwd` onc
 
 The clinic website's appointment form posts to `POST /api/public/bookings`. Each booking creates the patient
 (or reuses them if the same name + phone already exists), adds an appointment marked **Website** in the calendar,
-and sends Dr. Umar a WhatsApp alert with the details and a link to open it.
+and shows it to staff in the notification bell (see below).
 
 **Request** (JSON or form data):
 
@@ -61,15 +61,10 @@ returns `200` with the same appointment. Errors return `{"ok":false,"error":"<me
 **Access:** browsers must call from an origin listed in `BOOKING_ALLOWED_ORIGINS`. A server can call instead with
 the header `X-Api-Key: <BOOKING_API_KEY>`.
 
-**WhatsApp alerts** go to `NOTIFY_WHATSAPP_TO`. Set up one provider:
-
-- **CallMeBot (free, 1 minute):** from Dr. Umar's WhatsApp, follow https://www.callmebot.com/blog/free-api-whatsapp-messages/
-  (save their number and send the activation message). It replies with an API key. Put that key in `CALLMEBOT_APIKEY`.
-- **Meta WhatsApp Cloud API (official):** create a utility template whose body uses `{{1}}` name, `{{2}}` phone,
-  `{{3}}` branch, `{{4}}` date and time, `{{5}}` treatment, `{{6}}` message, `{{7}}` link. Once approved, set
-  `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` and `WHATSAPP_TEMPLATE`. This takes priority over CallMeBot.
-
-A failed alert never fails the booking; it is logged in the Vercel function logs.
+**Notifications:** new website bookings show in the bell at the top of every page (checked every 30 seconds),
+with a red count, a list, a "New" badge in the calendar, and the count in the browser tab title. Click **Turn on desktop
+alerts** in the bell to also get a pop-up and a sound while the app is open in a tab. A booking stops being new once
+someone opens it, or when **Mark all as seen** is clicked. Receptionists only see their own branch.
 
 ## Notes
 

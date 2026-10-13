@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppointmentCard } from "@/components/AppointmentCard";
 import { updateAppointment } from "@/lib/actions/appointments";
-import { getAppt } from "@/lib/appointments";
+import { bookedBy, getAppt } from "@/lib/appointments";
+import { sql } from "@/lib/db";
 import { googleCalendarUrl, weekdayOf } from "@/lib/calendar";
 import { APPT_STATUSES, prettyDate, prettyTime, waLink } from "@/lib/format";
 import { requireUser } from "@/lib/session";
@@ -12,7 +13,10 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
   const user = await requireUser();
   const a = await getAppt({ id: Number((await params).id) });
   if (!a || (user.branch && user.branch !== a.branch)) notFound();
+  // Opening a website booking takes it off everyone's "new" list.
+  if (a.source === "website" && !a.seen_at) await sql`update appointments set seen_at = now() where id = ${a.id}`;
   const created = (await searchParams).created === "1";
+  const isAdmin = user.role === "admin";
   const link = `${await baseUrl()}/a/${a.share_token}`;
 
   const when = `${weekdayOf(a.date)}, ${prettyDate(a.date)} at ${prettyTime(a.time)}`;
@@ -38,6 +42,18 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
           Appointment
           {a.source === "website" && <span className="badge ml-2 bg-gold/20 align-middle text-navy">Booked from website</span>}
         </h1>
+        <p className="mt-0.5 text-sm text-slate-500">
+          Booked by <b className="text-slate-700">{bookedBy(a)}</b> on{" "}
+          {new Date(a.created_at).toLocaleString("en-GB", {
+            timeZone: "Asia/Karachi",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })}
+        </p>
       </div>
       {created && (
         <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -84,7 +100,7 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
           </div>
 
           <form action={updateAppointment} className="card space-y-3">
-            <h2 className="font-semibold text-navy">Status & reschedule</h2>
+            <h2 className="font-semibold text-navy">{isAdmin ? "Status & reschedule" : "Status"}</h2>
             <input type="hidden" name="id" value={a.id} />
             <label className="label">
               Status
@@ -94,18 +110,22 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
                 ))}
               </select>
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <fieldset disabled={!isAdmin} className="grid grid-cols-2 gap-2">
               <label className="label">
                 Date
-                <input name="date" type="date" defaultValue={a.date} className="input mt-1" />
+                <input name="date" type="date" defaultValue={a.date} className="input mt-1 disabled:bg-slate-50 disabled:text-slate-500" />
               </label>
               <label className="label">
                 Time
-                <input name="time" type="time" defaultValue={a.time} className="input mt-1" />
+                <input name="time" type="time" defaultValue={a.time} className="input mt-1 disabled:bg-slate-50 disabled:text-slate-500" />
               </label>
-            </div>
+            </fieldset>
             <button className="btn-primary w-full">Save changes</button>
-            <p className="text-xs text-slate-500">After rescheduling, send the WhatsApp confirmation again — the link always shows the latest time.</p>
+            <p className="text-xs text-slate-500">
+              {isAdmin
+                ? "After rescheduling, send the WhatsApp confirmation again — the link always shows the latest time."
+                : "Only admin can change the date or time."}
+            </p>
           </form>
         </div>
       </div>

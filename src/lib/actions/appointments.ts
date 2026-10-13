@@ -20,7 +20,7 @@ export async function createAppointment(_prev: string | null, form: FormData): P
     if (!isDate(date) || !isTime(time)) return "Choose a valid date and time.";
     const duration = Math.min(480, Math.max(10, intOr0(form.get("duration_min")) || 30));
 
-    const patient = await resolvePatientFromForm(form, branch, date);
+    const patient = await resolvePatientFromForm(form, branch, date, user.role === "admin");
     const [row] = await sql`
       insert into appointments (mr, branch, date, time, duration_min, procedure, status, notes, created_by)
       values (${patient.mr}, ${branch}, ${date}, ${time}, ${duration},
@@ -37,7 +37,7 @@ export async function createAppointment(_prev: string | null, form: FormData): P
 export async function updateAppointment(form: FormData) {
   const user = await requireUser();
   const id = Number(form.get("id"));
-  const [a] = await sql`select branch from appointments where id = ${id}`;
+  const [a] = await sql`select branch, date, time from appointments where id = ${id}`;
   if (!a) return;
   assertBranch(user, a.branch as string);
 
@@ -47,9 +47,20 @@ export async function updateAppointment(form: FormData) {
   if (status && (APPT_STATUSES as readonly string[]).includes(status)) {
     await sql`update appointments set status = ${status}, updated_at = now() where id = ${id}`;
   }
-  if (isDate(date) && isTime(time)) {
+  // Anyone may update the status; only admin may reschedule.
+  if (isDate(date) && isTime(time) && (date !== a.date || time !== a.time)) {
+    if (user.role !== "admin") throw new Error("Only admin can reschedule appointments");
     await sql`update appointments set date = ${date}, time = ${time}, updated_at = now() where id = ${id}`;
   }
   revalidatePath(`/appointments/${id}`);
+  revalidatePath("/appointments");
+}
+
+/** Clears the notification bell: marks every new website booking the user can see as seen. */
+export async function markAllBookingsSeen() {
+  const user = await requireUser();
+  await sql`
+    update appointments set seen_at = now()
+    where source = 'website' and seen_at is null and (${user.branch}::text is null or branch = ${user.branch})`;
   revalidatePath("/appointments");
 }

@@ -11,7 +11,7 @@ export default async function PatientPage({ params }: PageProps<"/patients/[mr]"
   const mr = decodeURIComponent((await params).mr);
   const p = await getPatient(mr);
   if (!p) notFound();
-  const canEdit = !user.branch || user.branch === p.branch;
+  const canEdit = user.role === "admin";
 
   const [visits, invoices, rxs, appts, branch] = await Promise.all([
     sql`select date, visit_type, procedure, branch from opd_visits where mr = ${mr} order by date desc, id desc`,
@@ -80,7 +80,11 @@ export default async function PatientPage({ params }: PageProps<"/patients/[mr]"
               </label>
             </div>
             <label className="label">Address<input name="address" defaultValue={p.address} className="input mt-1" /></label>
-            <button className="btn-primary w-full">Save details</button>
+            {canEdit ? (
+              <button className="btn-primary w-full">Save details</button>
+            ) : (
+              <p className="text-xs text-slate-500">Only admin can edit patient details.</p>
+            )}
           </fieldset>
         </form>
 

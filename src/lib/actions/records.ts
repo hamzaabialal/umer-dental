@@ -40,6 +40,7 @@ export async function addPatient(_prev: string | null, form: FormData): Promise<
 
 export async function updatePatient(form: FormData) {
   const user = await requireUser();
+  if (user.role !== "admin") throw new Error("Only admin can edit patient details");
   const mr = String(form.get("mr"));
   const p = await getPatient(mr);
   if (!p) return;
@@ -63,7 +64,7 @@ export async function addVisit(_prev: string | null, form: FormData): Promise<st
     const date = String(form.get("date") || todayPK());
     const type = String(form.get("visit_type"));
     if (!VISIT_TYPES.includes(type)) return "Choose a visit type.";
-    const p = await resolvePatientFromForm(form, branch, date);
+    const p = await resolvePatientFromForm(form, branch, date, user.role === "admin");
     await sql`
       insert into opd_visits (date, mr, branch, visit_type, procedure, created_by)
       values (${date}, ${p.mr}, ${branch}, ${type}, ${String(form.get("procedure") ?? "").trim()}, ${user.id})`;

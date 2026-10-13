@@ -97,21 +97,28 @@ export async function createPatient(p: {
   return row as Patient;
 }
 
-/** Reads the PatientPicker fields from a form: either an existing MR or new-patient details. */
-export async function resolvePatientFromForm(form: FormData, branch: string, date: string): Promise<Patient> {
+/**
+ * Reads the PatientPicker fields from a form: either an existing MR or new-patient details.
+ * For an existing patient, details typed on the form fill in blanks; `overwrite` (admin only) also replaces existing values.
+ */
+export async function resolvePatientFromForm(form: FormData, branch: string, date: string, overwrite = false): Promise<Patient> {
   const mr = String(form.get("patient_mr") ?? "").trim();
   if (mr) {
     const p = await getPatient(mr);
     if (!p) throw new Error("Selected patient not found");
-    // Fill in details captured on this visit if the record didn't have them yet.
     const age = numOrNull(form.get("patient_age"));
     const gender = String(form.get("patient_gender") ?? "").trim() || null;
     const address = String(form.get("patient_address") ?? "").trim();
     if ((age !== null && age !== p.age) || (gender && gender !== p.gender) || (address && address !== p.address)) {
-      const [u] = await sql`
-        update patients set age = coalesce(${age}, age), gender = coalesce(${gender}, gender),
-          address = case when ${address} <> '' then ${address} else address end
-        where mr = ${mr} returning *`;
+      const [u] = overwrite
+        ? await sql`
+            update patients set age = coalesce(${age}, age), gender = coalesce(${gender}, gender),
+              address = case when ${address} <> '' then ${address} else address end
+            where mr = ${mr} returning *`
+        : await sql`
+            update patients set age = coalesce(age, ${age}), gender = coalesce(gender, ${gender}),
+              address = case when address = '' then ${address} else address end
+            where mr = ${mr} returning *`;
       return u as Patient;
     }
     return p;

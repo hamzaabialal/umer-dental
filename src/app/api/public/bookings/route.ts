@@ -1,10 +1,7 @@
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
-import { weekdayOf } from "@/lib/calendar";
 import { createPatient, type Patient } from "@/lib/data";
 import { sql } from "@/lib/db";
-import { BRANCHES, normPhone, prettyDate, prettyPhone, prettyTime, todayPK, waLink } from "@/lib/format";
-import { notifyClinic } from "@/lib/notify";
+import { BRANCHES, normPhone, todayPK } from "@/lib/format";
 import { baseUrl } from "@/lib/url";
 
 /**
@@ -13,7 +10,7 @@ import { baseUrl } from "@/lib/url";
  * Accepts JSON or form data: name, phone, branch (Bahria | PWD), date (YYYY-MM-DD), time (HH:MM),
  * optional treatment and message, plus an always-empty honeypot field "company".
  * Callers must come from an origin in BOOKING_ALLOWED_ORIGINS (browser) or send X-Api-Key = BOOKING_API_KEY (server).
- * Creates the patient if new, books a 'website' appointment and WhatsApps the clinic.
+ * Creates the patient if new and books a 'website' appointment, which staff see in the notification bell.
  */
 
 const MAX_PER_IP_PER_HOUR = 5;
@@ -136,31 +133,14 @@ export async function POST(request: Request) {
         values (${patient.mr}, ${b.branch}, ${b.date}, ${b.time}, 30, ${b.treatment}, 'Booked', ${b.message}, 'website')
         returning id, share_token`;
 
-  const base = await baseUrl();
   if (!dupe) {
     await sql`insert into web_booking_log (ip, phone_norm) values (${ip}, ${b.phoneNorm})`;
     revalidatePath("/appointments");
-
-    const when = `${weekdayOf(b.date)}, ${prettyDate(b.date)} at ${prettyTime(b.time)}`;
-    const staffLink = `${base}/appointments/${appt.id}`;
-    const text =
-      `🦷 *New website booking*\n\n` +
-      `👤 ${b.name} (${patient.mr}${existing ? "" : ", new patient"})\n` +
-      `📞 ${prettyPhone(b.phone)}\n` +
-      `📍 ${b.branch} branch\n` +
-      `📅 ${when}\n` +
-      (b.treatment ? `🩺 ${b.treatment}\n` : "") +
-      (b.message ? `💬 ${b.message}\n` : "") +
-      `\nOpen: ${staffLink}\n` +
-      `Reply to patient: ${waLink(b.phone, `Hello ${b.name}, `) ?? "-"}`;
-    after(() =>
-      notifyClinic(text, [b.name, prettyPhone(b.phone), b.branch, when, b.treatment || "-", b.message || "-", staffLink]),
-    );
   }
 
   return reply(dupe ? 200 : 201, {
     ok: true,
     appointment: { id: appt.id, branch: b.branch, date: b.date, time: b.time },
-    calendarUrl: `${base}/a/${appt.share_token}`,
+    calendarUrl: `${await baseUrl()}/a/${appt.share_token}`,
   });
 }

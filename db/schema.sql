@@ -175,6 +175,9 @@ create table if not exists expenses (
 
 -- Bookings from the public website form (POST /api/public/bookings) are marked source = 'website'.
 alter table appointments add column if not exists source text not null default 'staff';
+-- When staff first opened a website booking; null = still "new" in the notification bell.
+alter table appointments add column if not exists seen_at timestamptz;
+create index if not exists appointments_unseen_idx on appointments (created_at) where source = 'website' and seen_at is null;
 
 -- One row per accepted website booking, used to rate-limit the public API by IP and phone.
 create table if not exists web_booking_log (

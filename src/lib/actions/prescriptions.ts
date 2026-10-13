@@ -26,7 +26,7 @@ export async function createPrescription(_prev: string | null, form: FormData): 
     const diagnosis = String(form.get("diagnosis") ?? "").trim();
     if (!diagnosis && !meds.length) return "Enter a diagnosis or at least one medicine.";
 
-    const patient = await resolvePatientFromForm(form, branch, date);
+    const patient = await resolvePatientFromForm(form, branch, date, user.role === "admin");
     const [row] = await sql.query(
       `with rx as (
          insert into prescriptions (date, mr, branch, diagnosis, treatment_done, advice, created_by)
