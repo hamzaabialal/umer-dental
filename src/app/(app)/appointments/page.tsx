@@ -13,6 +13,8 @@ const STATUS_STYLE: Record<string, string> = {
   "No-show": "border-l-red-600 bg-red-50 text-red-700",
 };
 
+const UPCOMING_DAYS = 90;
+
 function addDays(ymd: string, n: number) {
   const [y, m, d] = ymd.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
@@ -29,7 +31,12 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
   const today = todayPK();
   const start = mondayOf(typeof sp.week === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.week) ? sp.week : today);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const appts = await listAppts({ from: days[0], to: days[6], branch });
+  const [appts, upcomingAll] = await Promise.all([
+    listAppts({ from: days[0], to: days[6], branch }),
+    // Website bookings can be up to 90 days out, far beyond the week on screen.
+    listAppts({ from: today, to: addDays(today, UPCOMING_DAYS), branch }),
+  ]);
+  const upcoming = upcomingAll.filter((a) => !["Completed", "Cancelled", "No-show"].includes(a.status));
 
   return (
     <>
@@ -43,6 +50,10 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
         <Link href={`/appointments?week=${addDays(start, 7)}`} className="btn-ghost">
           Next →
         </Link>
+        <form className="flex items-center gap-1.5">
+          <input type="date" name="week" defaultValue={start} className="input w-auto py-1.5" aria-label="Go to date" />
+          <button className="btn-ghost">Go</button>
+        </form>
         <Link href="/appointments/new" className="btn-gold">
           + Book Appointment
         </Link>
@@ -89,6 +100,51 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
             </div>
           );
         })}
+      </div>
+
+      <div className="card mt-6 overflow-x-auto p-0">
+        <h2 className="px-5 pt-4 pb-2 font-semibold text-navy">
+          Upcoming appointments <span className="font-normal text-slate-500">({upcoming.length}, next {UPCOMING_DAYS} days)</span>
+        </h2>
+        {upcoming.length === 0 ? (
+          <p className="px-5 pb-5 text-sm text-slate-500">No upcoming appointments.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Patient</th>
+                <th>Treatment</th>
+                {!branch && <th>Branch</th>}
+                <th>Status</th>
+                <th>Booked by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upcoming.map((a) => (
+                <tr key={a.id} className="hover:bg-slate-50">
+                  <td className="whitespace-nowrap">
+                    <Link href={`/appointments/${a.id}`} className="font-medium text-navy hover:underline">
+                      {prettyDate(a.date)}
+                    </Link>
+                  </td>
+                  <td className="whitespace-nowrap">{prettyTime(a.time)}</td>
+                  <td>
+                    <Link href={`/appointments/${a.id}`} className="hover:underline">
+                      {a.patient_name}
+                    </Link>
+                    {a.source === "website" && !a.seen_at && <span className="badge ml-1.5 bg-red-600 text-white">New</span>}
+                  </td>
+                  <td>{a.procedure || "—"}</td>
+                  {!branch && <td>{a.branch}</td>}
+                  <td>{a.status}</td>
+                  <td className="whitespace-nowrap">{bookedBy(a)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </>
   );
